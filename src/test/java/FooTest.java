@@ -2,6 +2,8 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -21,7 +23,7 @@ public class FooTest {
     public void appendToUsesServiceToGetSuffix() {
         final Foo foo = new Foo(suffixService);
 
-        when(suffixService.getSuffix(anyInt())).thenReturn("cod");
+        when(suffixService.getSuffix(anyInt())).thenReturn(CompletableFuture.completedFuture("cod"));
 
         assertThat(foo.appendTo("ing")).isEqualTo("coding");
     }
@@ -30,7 +32,7 @@ public class FooTest {
     public void appendToUsesLengthOfRoot() {
         final Foo foo = new Foo(suffixService);
 
-        when(suffixService.getSuffix(4)).thenReturn("co");
+        when(suffixService.getSuffix(4)).thenReturn(CompletableFuture.completedFuture("co"));
 
         assertThat(foo.appendTo("ding")).isEqualTo("coding");
     }
@@ -38,6 +40,28 @@ public class FooTest {
     @Test(expected = IllegalArgumentException.class)
     public void appendToExpectsNonNullArgument() {
         new Foo(suffixService).appendTo(null);
+    }
+
+    @Test(expected = SuffixException.class)
+    public void appendToThrowsExceptionIfServiceFailsWithExecutionException() {
+        final Foo foo = new Foo(suffixService);
+
+        when(suffixService.getSuffix(anyInt()))
+                .thenReturn(CompletableFuture
+                        .failedFuture(new ExecutionException(null)));
+
+        foo.appendTo("surprise");
+    }
+
+    @Test(expected = SuffixException.class)
+    public void appendToThrowsExceptionIfServiceFailsWithInterruptedException() {
+        final Foo foo = new Foo(suffixService);
+
+        when(suffixService.getSuffix(anyInt()))
+                .thenReturn(CompletableFuture
+                        .failedFuture(new InterruptedException(null)));
+
+        foo.appendTo("surprise");
     }
 
     static class Foo {
@@ -50,13 +74,24 @@ public class FooTest {
         public String appendTo(String root) {
             final String nonNullRoot = Optional.ofNullable(root)
                     .orElseThrow(() -> new IllegalArgumentException("root cannot be null"));
-            final String suffix = suffixService.getSuffix(nonNullRoot.length());
 
-            return suffix + nonNullRoot;
+            try {
+                final String suffix = suffixService.getSuffix(nonNullRoot.length()).get();
+
+                return suffix + nonNullRoot;
+            } catch (ExecutionException | InterruptedException e) {
+                throw new SuffixException(e);
+            }
         }
     }
 
     interface ISuffixService {
-        String getSuffix(int length);
+        CompletableFuture<String> getSuffix(int length);
+    }
+
+    static class SuffixException extends RuntimeException {
+        public SuffixException(Throwable cause) {
+            super("Could not get suffix", cause);
+        }
     }
 }
