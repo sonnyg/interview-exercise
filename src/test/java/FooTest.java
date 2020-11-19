@@ -1,5 +1,7 @@
 import org.junit.Test;
 
+import java.util.Optional;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class FooTest {
@@ -9,6 +11,11 @@ public class FooTest {
         final Foo foo = new Foo("cod");
 
         assertThat(foo.appendTo("ing")).isEqualTo("coding");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void appendToExpectsNonNullArgument() {
+        new Foo("foo").appendTo(null);
     }
 
     @Test
@@ -25,7 +32,8 @@ public class FooTest {
         }
 
         public String appendTo(String root) {
-            return _suffix + root;
+            return _suffix + Optional.ofNullable(root)
+                    .orElseThrow(() -> new IllegalArgumentException("root cannot be null"));
         }
     }
 }
