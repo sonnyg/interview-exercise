@@ -6,12 +6,24 @@ public class FooTest {
 
     @Test
     public void appendToReturnsValue() {
-        final Foo foo = new Foo();
+        final Foo foo = new Foo("");
 
         assertThat(foo.appendTo("")).isNotNull();
     }
 
+    @Test
+    public void fooInstancesCanHaveDifferentSuffixes() {
+        new Foo("foo");
+        new Foo("bar");
+    }
+
     static class Foo {
+        private final String _suffix;
+
+        public Foo(String _suffix) {
+            this._suffix = _suffix;
+        }
+
         public String appendTo(String root) {
             return "";
         }
