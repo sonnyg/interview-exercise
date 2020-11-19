@@ -6,9 +6,9 @@ public class FooTest {
 
     @Test
     public void appendToReturnsValue() {
-        final Foo foo = new Foo("");
+        final Foo foo = new Foo("cod");
 
-        assertThat(foo.appendTo("")).isNotNull();
+        assertThat(foo.appendTo("ing")).isEqualTo("coding");
     }
 
     @Test
@@ -25,7 +25,7 @@ public class FooTest {
         }
 
         public String appendTo(String root) {
-            return "";
+            return _suffix + root;
         }
     }
 }
